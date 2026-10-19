@@ -1,6 +1,7 @@
 package com.octiq.test.shared;
 
 import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -11,8 +12,12 @@ public final class MiniServer {
     private MiniServer() { }
 
     public static HttpServer start(int port, String path, Supplier<String> body) throws IOException {
+        return start(port, path, ex -> respond(ex, 200, body.get()));
+    }
+
+    public static HttpServer start(int port, String path, HttpHandler handler) throws IOException {
         HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
-        server.createContext(path, ex -> respond(ex, 200, body.get()));
+        server.createContext(path, handler);
         server.createContext("/health", ex -> respond(ex, 200, "{\"status\":\"UP\"}"));
         server.start();
         System.out.println("Listening on :" + port + " " + path);

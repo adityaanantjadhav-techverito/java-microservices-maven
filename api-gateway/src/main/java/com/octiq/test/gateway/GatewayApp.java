@@ -18,17 +18,24 @@ public class GatewayApp {
         String orders = System.getenv().getOrDefault("ORDER_SERVICE_URL", "http://localhost:8082");
 
         HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
-        server.createContext("/users", ex -> proxy(ex, users + "/users"));
-        server.createContext("/orders", ex -> proxy(ex, orders + "/orders"));
+        server.createContext("/users", ex -> proxy(ex, users));
+        server.createContext("/orders", ex -> proxy(ex, orders));
         server.createContext("/health", ex -> MiniServer.respond(ex, 200, "{\"status\":\"UP\"}"));
         server.start();
         System.out.println("api-gateway listening on :" + port);
     }
 
-    private static void proxy(com.sun.net.httpserver.HttpExchange ex, String target) throws IOException {
+    private static void proxy(com.sun.net.httpserver.HttpExchange ex, String base) throws IOException {
         try {
+            String target = base + ex.getRequestURI().getPath();
+            String query = ex.getRequestURI().getRawQuery();
+            if (query != null) {
+                target += "?" + query;
+            }
             HttpResponse<String> r = CLIENT.send(
-                    HttpRequest.newBuilder(URI.create(target)).GET().build(),
+                    HttpRequest.newBuilder(URI.create(target))
+                            .method(ex.getRequestMethod(), HttpRequest.BodyPublishers.noBody())
+                            .build(),
                     HttpResponse.BodyHandlers.ofString());
             MiniServer.respond(ex, r.statusCode(), r.body());
         } catch (InterruptedException | IOException e) {
