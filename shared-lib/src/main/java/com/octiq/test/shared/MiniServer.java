@@ -24,6 +24,10 @@ public final class MiniServer {
         return server;
     }
 
+    public static String body(HttpExchange ex) throws IOException {
+        return new String(ex.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+    }
+
     public static void respond(HttpExchange ex, int status, String body) throws IOException {
         byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
         ex.getResponseHeaders().add("Content-Type", "application/json");

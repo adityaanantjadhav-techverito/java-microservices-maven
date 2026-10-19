@@ -48,6 +48,57 @@ public class OrderServiceApp {
                 return;
             }
 
+            if (method.equals("PUT") && parts.length == 4) {
+                List<String> updated = Json.parseArray(MiniServer.body(ex));
+                List<String> snapshot;
+                synchronized (items) {
+                    items.clear();
+                    items.addAll(updated);
+                    snapshot = new ArrayList<>(items);
+                }
+                MiniServer.respond(ex, 200, Json.array(snapshot));
+                return;
+            }
+
+            if (method.equals("POST") && parts.length == 4) {
+                String item = Json.parseItem(MiniServer.body(ex));
+                if (item == null || item.isEmpty()) {
+                    MiniServer.respond(ex, 400, "{\"error\":\"line item required\"}");
+                    return;
+                }
+                List<String> snapshot;
+                synchronized (items) {
+                    items.add(item);
+                    snapshot = new ArrayList<>(items);
+                }
+                MiniServer.respond(ex, 201, Json.array(snapshot));
+                return;
+            }
+
+            if (method.equals("PUT") && parts.length == 5) {
+                String item = Json.parseItem(MiniServer.body(ex));
+                if (item == null || item.isEmpty()) {
+                    MiniServer.respond(ex, 400, "{\"error\":\"line item required\"}");
+                    return;
+                }
+                List<String> snapshot;
+                synchronized (items) {
+                    int index = items.indexOf(parts[4]);
+                    if (index < 0) {
+                        snapshot = null;
+                    } else {
+                        items.set(index, item);
+                        snapshot = new ArrayList<>(items);
+                    }
+                }
+                if (snapshot == null) {
+                    MiniServer.respond(ex, 404, "{\"error\":\"line item not found\"}");
+                } else {
+                    MiniServer.respond(ex, 200, Json.array(snapshot));
+                }
+                return;
+            }
+
             if (method.equals("DELETE") && parts.length == 4) {
                 List<String> snapshot;
                 synchronized (items) {

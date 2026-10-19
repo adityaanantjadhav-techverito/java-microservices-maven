@@ -32,10 +32,17 @@ public class GatewayApp {
             if (query != null) {
                 target += "?" + query;
             }
+            byte[] body = ex.getRequestBody().readAllBytes();
+            HttpRequest.Builder request = HttpRequest.newBuilder(URI.create(target))
+                    .method(ex.getRequestMethod(), body.length == 0
+                            ? HttpRequest.BodyPublishers.noBody()
+                            : HttpRequest.BodyPublishers.ofByteArray(body));
+            String contentType = ex.getRequestHeaders().getFirst("Content-Type");
+            if (contentType != null) {
+                request.header("Content-Type", contentType);
+            }
             HttpResponse<String> r = CLIENT.send(
-                    HttpRequest.newBuilder(URI.create(target))
-                            .method(ex.getRequestMethod(), HttpRequest.BodyPublishers.noBody())
-                            .build(),
+                    request.build(),
                     HttpResponse.BodyHandlers.ofString());
             MiniServer.respond(ex, r.statusCode(), r.body());
         } catch (InterruptedException | IOException e) {
