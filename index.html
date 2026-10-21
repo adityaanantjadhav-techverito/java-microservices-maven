@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Microservices Console</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f4f6f8;
+      --panel: #ffffff;
+      --text: #1c2733;
+      --muted: #5d6b7a;
+      --border: #d9e0e7;
+      --accent: #0b6bcb;
+      --danger: #b3261e;
+      --ok: #1b7f4b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    header {
+      padding: 24px;
+      background: #102a43;
+      color: #fff;
+    }
+    header h1 { margin: 0 0 6px; font-size: 1.4rem; }
+    header p { margin: 0; color: #b9c9d8; font-size: 0.9rem; }
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 20px;
+      display: grid;
+      gap: 16px;
+    }
+    section {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+    }
+    section h2 {
+      margin: 0 0 12px;
+      font-size: 1.05rem;
+    }
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .row + .row { margin-top: 10px; }
+    label { font-size: 0.85rem; color: var(--muted); }
+    input, select, textarea {
+      font: inherit;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      background: var(--panel);
+      color: var(--text);
+    }
+    input[type="url"] { flex: 1 1 320px; }
+    textarea {
+      width: 100%;
+      min-height: 74px;
+      resize: vertical;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.85rem;
+    }
+    button {
+      font: inherit;
+      padding: 8px 12px;
+      border: 1px solid transparent;
+      border-radius: 7px;
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+    }
+    button:hover { filter: brightness(1.08); }
+    button.secondary {
+      background: transparent;
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+    button.danger { background: var(--danger); }
+    button:disabled { opacity: 0.55; cursor: not-allowed; }
+    .pill-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .pill {
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #e8f1fb;
+      color: #0b4f92;
+      font-size: 0.85rem;
+    }
+    .items {
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .item {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      padding: 8px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    .item input { flex: 1; }
+    .empty { color: var(--muted); font-size: 0.9rem; }
+    .status {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+    .status.ok { color: var(--ok); }
+    .status.error { color: var(--danger); }
+    #log {
+      margin: 0;
+      padding: 12px;
+      min-height: 170px;
+      max-height: 320px;
+      overflow: auto;
+      border-radius: 8px;
+      background: #0b1724;
+      color: #d7e3ee;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.8rem;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .hint {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+    @media (max-width: 600px) {
+      .item { flex-wrap: wrap; }
+      .item input { flex-basis: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Microservices Console</h1>
+    <p>Exercise the user, order and line-item APIs through the API gateway.</p>
+  </header>
+  <main>
+    <section>
+      <h2>Gateway</h2>
+      <div class="row">
+        <label for="baseUrl">Base URL</label>
+        <input id="baseUrl" type="url" value="http://localhost:8080" spellcheck="false">
+        <button id="healthBtn" class="secondary">Check health</button>
+      </div>
+      <p id="status" class="status">Not connected.</p>
+      <p class="hint">Open this file directly in a browser. Requests go to the gateway, so the gateway must be running and must allow cross-origin requests.</p>
+    </section>
+
+    <section>
+      <h2>Users</h2>
+      <div class="row">
+        <button id="loadUsers">Load users</button>
+      </div>
+      <div id="users" class="pill-list"></div>
+    </section>
+
+    <section>
+      <h2>Orders and line items</h2>
+      <div class="row">
+        <button id="loadOrders">Load orders</button>
+        <label for="orderSelect">Order</label>
+        <select id="orderSelect" disabled>
+          <option value="">Load orders first</option>
+        </select>
+        <button id="loadItems" class="secondary" disabled>Load line items</button>
+      </div>
+      <div class="row">
+        <input id="newItem" type="text" placeholder="New line item id" autocomplete="off">
+        <button id="addItem" disabled>Add item</button>
+      </div>
+      <div id="items" class="items"></div>
+      <div class="row">
+        <button id="deleteAll" class="danger" disabled>Delete all line items</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>Replace line items</h2>
+      <textarea id="replaceBody" spellcheck="false">["line-2001", "line-2002"]</textarea>
+      <div class="row">
+        <button id="replaceItems" disabled>Replace collection</button>
+        <span class="status">Send a JSON array to PUT the whole collection.</span>
+      </div>
+    </section>
+
+    <section>
+      <h2>Request log</h2>
+      <pre id="log"></pre>
+    </section>
+  </main>
+
+  <script>
+    const state = { orders: [], items: [], loadedOrder: "" };
+
+    const byId = (id) => document.getElementById(id);
+
+    const status = byId("status");
+    const log = byId("log");
+    const orderSelect = byId("orderSelect");
+    const itemsBox = byId("items");
+
+    function baseUrl() {
+      return byId("baseUrl").value.replace(/\/+$/, "");
+    }
+
+    function setStatus(message, tone) {
+      status.textContent = message;
+      status.className = "status" + (tone ? " " + tone : "");
+    }
+
+    function writeLog(title, detail) {
+      const time = new Date().toLocaleTimeString();
+      log.textContent += "[" + time + "] " + title + "\n" + detail + "\n\n";
+      log.scrollTop = log.scrollHeight;
+    }
+
+    async function request(method, path, body) {
+      const options = { method, headers: { "Accept": "application/json" } };
+      if (body !== undefined) {
+        options.headers["Content-Type"] = "application/json";
+        options.body = JSON.stringify(body);
+      }
+      const url = baseUrl() + path;
+      writeLog(method + " " + url, body === undefined ? "(no body)" : JSON.stringify(body));
+      const response = await fetch(url, options);
+      const text = await response.text();
+      writeLog("Response " + response.status, text || "(empty body)");
+      let data = null;
+      if (text) {
+        try {
+          data = JSON.parse(text);
+        } catch (error) {
+          data = text;
+        }
+      }
+      if (!response.ok) {
+        throw new Error("HTTP " + response.status + ": " + (text || response.statusText));
+      }
+      return data;
+    }
+
+    function currentOrder() {
+      return orderSelect.value;
+    }
+
+    function updateControls() {
+      const order = currentOrder();
+      const hasOrder = Boolean(order);
+      byId("addItem").disabled = !hasOrder;
+      byId("deleteAll").disabled = !hasOrder || state.items.length === 0;
+      byId("replaceItems").disabled = !hasOrder;
+      byId("loadItems").disabled = !hasOrder;
+    }
+
+    function renderUsers(users) {
+      const box = byId("users");
+      box.replaceChildren();
+      if (!Array.isArray(users) || users.length === 0) {
+        const empty = document.createElement("span");
+        empty.className = "empty";
+        empty.textContent = "No users returned.";
+        box.append(empty);
+        return;
+      }
+      users.forEach((user) => {
+        const pill = document.createElement("span");
+        pill.className = "pill";
+        pill.textContent = user;
+        box.append(pill);
+      });
+    }
+
+    function renderOrders(orders) {
+      orderSelect.replaceChildren();
+      if (!Array.isArray(orders) || orders.length === 0) {
+        const option = document.createElement("option");
+        option.value = "";
+        option.textContent = "No orders returned";
+        orderSelect.append(option);
+        orderSelect.disabled = true;
+        state.loadedOrder = "";
+        state.items = [];
+        itemsBox.replaceChildren();
+        updateControls();
+        return;
+      }
+      orders.forEach((order) => {
+        const option = document.createElement("option");
+        option.value = order;
+        option.textContent = order;
+        orderSelect.append(option);
+      });
+      const preferred = orders.includes(state.loadedOrder) ? state.loadedOrder : orders[0];
+      orderSelect.value = preferred;
+      orderSelect.disabled = false;
+    }
+
+    function renderItems() {
+      itemsBox.replaceChildren();
+      if (state.items.length === 0) {
+        const empty = document.createElement("p");
+        empty.className = "empty";
+        empty.textContent = "No line items for this order.";
+        itemsBox.append(empty);
+        updateControls();
+        return;
+      }
+      state.items.forEach((item) => {
+        const row = document.createElement("div");
+        row.className = "item";
+
+        const input = document.createElement("input");
+        input.type = "text";
+        input.value = item;
+        input.setAttribute("aria-label", "Line item " + item);
+
+        const update = document.createElement("button");
+        update.className = "secondary";
+        update.textContent = "Update";
+        update.addEventListener("click", () => updateItem(item, input.value));
+
+        const remove = document.createElement("button");
+        remove.className = "danger";
+        remove.textContent = "Delete";
+        remove.addEventListener("click", () => deleteItem(item));
+
+        row.append(input, update, remove);
+        itemsBox.append(row);
+      });
+      updateControls();
+    }
+
+    async function checkHealth() {
+      try {
+        await request("GET", "/health");
+        setStatus("Gateway reachable at " + baseUrl() + ".", "ok");
+      } catch (error) {
+        setStatus("Gateway unreachable: " + error.message, "error");
+      }
+    }
+
+    async function loadUsers() {
+      try {
+        const users = await request("GET", "/users");
+        renderUsers(users);
+        setStatus("Loaded users.", "ok");
+      } catch (error) {
+        renderUsers([]);
+        setStatus("Could not load users: " + error.message, "error");
+      }
+    }
+
+    async function loadOrders() {
+      try {
+        const orders = await request("GET", "/orders");
+        renderOrders(orders);
+        const order = currentOrder();
+        if (order) {
+          state.loadedOrder = order;
+          await loadItems();
+        } else {
+          setStatus("No orders available.", "error");
+        }
+      } catch (error) {
+        renderOrders([]);
+        setStatus("Could not load orders: " + error.message, "error");
+      }
+    }
+
+    async function loadItems() {
+      const order = currentOrder();
+      if (!order) {
+        state.items = [];
+        renderItems();
+        return;
+      }
+      try {
+        const items = await request("GET", "/orders/" + encodeURIComponent(order) + "/line-items");
+        state.items = Array.isArray(items) ? items : [];
+        state.loadedOrder = order;
+        renderItems();
+        setStatus("Loaded " + state.items.length + " line item(s) for " + order + ".", "ok");
+      } catch (error) {
+        state.items = [];
+        renderItems();
+        setStatus("Could not load line items: " + error.message, "error");
+      }
+    }
+
+    async function addItem() {
+      const order = currentOrder();
+      const value = byId("newItem").value.trim();
+      if (!order || !value) {
+        setStatus("Choose an order and enter a line item id.", "error");
+        return;
+      }
+      try {
+        await request("POST", "/orders/" + encodeURIComponent(order) + "/line-items", value);
+        byId("newItem").value = "";
+        await loadItems();
+        setStatus("Added " + value + " to " + order + ".", "ok");
+      } catch (error) {
+        setStatus("Could not add line item: " + error.message, "error");
+      }
+    }
+
+    async function updateItem(original, value) {
+      const order = currentOrder();
+      const next = value.trim();
+      if (!order || !next) {
+        setStatus("A line item id is required.", "error");
+        return;
+      }
+      try {
+        await request(
+          "PUT",
+          "/orders/" + encodeURIComponent(order) + "/line-items/" + encodeURIComponent(original),
+          next
+        );
+        await loadItems();
+        setStatus("Updated " + original + ".", "ok");
+      } catch (error) {
+        setStatus("Could not update line item: " + error.message, "error");
+      }
+    }
+
+    async function deleteItem(item) {
+      const order = currentOrder();
+      if (!order) {
+        return;
+      }
+      try {
+        await request(
+          "DELETE",
+          "/orders/" + encodeURIComponent(order) + "/line-items/" + encodeURIComponent(item)
+        );
+        await loadItems();
+        setStatus("Deleted " + item + ".", "ok");
+      } catch (error) {
+        setStatus("Could not delete line item: " + error.message, "error");
+      }
+    }
+
+    async function deleteAllItems() {
+      const order = currentOrder();
+      if (!order) {
+        return;
+      }
+      try {
+        await request("DELETE", "/orders/" + encodeURIComponent(order) + "/line-items");
+        await loadItems();
+        setStatus("Deleted all line items for " + order + ".", "ok");
+      } catch (error) {
+        setStatus("Could not delete line items: " + error.message, "error");
+      }
+    }
+
+    async function replaceItems() {
+      const order = currentOrder();
+      if (!order) {
+        return;
+      }
+      let parsed;
+      try {
+        parsed = JSON.parse(byId("replaceBody").value);
+      } catch (error) {
+        setStatus("Replace body must be valid JSON.", "error");
+        return;
+      }
+      if (!Array.isArray(parsed)) {
+        setStatus("Replace body must be a JSON array.", "error");
+        return;
+      }
+      try {
+        await request("PUT", "/orders/" + encodeURIComponent(order) + "/line-items", parsed);
+        await loadItems();
+        setStatus("Replaced line items for " + order + ".", "ok");
+      } catch (error) {
+        setStatus("Could not replace line items: " + error.message, "error");
+      }
+    }
+
+    byId("healthBtn").addEventListener("click", checkHealth);
+    byId("loadUsers").addEventListener("click", loadUsers);
+    byId("loadOrders").addEventListener("click", loadOrders);
+    byId("loadItems").addEventListener("click", loadItems);
+    byId("addItem").addEventListener("click", addItem);
+    byId("deleteAll").addEventListener("click", deleteAllItems);
+    byId("replaceItems").addEventListener("click", replaceItems);
+    orderSelect.addEventListener("change", () => {
+      state.loadedOrder = currentOrder();
+      state.items = [];
+      renderItems();
+      loadItems();
+    });
+    byId("newItem").addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        addItem();
+      }
+    });
+    updateControls();
+    checkHealth();
+  </script>
+</body>
+</html>
