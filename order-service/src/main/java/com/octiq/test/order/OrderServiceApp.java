@@ -1,6 +1,7 @@
 package com.octiq.test.order;
 
 import com.octiq.test.shared.Json;
+import com.octiq.test.shared.Migrations;
 import com.octiq.test.shared.MiniServer;
 import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
@@ -14,6 +15,7 @@ public class OrderServiceApp {
     private static final Map<String, List<String>> LINE_ITEMS = new ConcurrentHashMap<>();
 
     public static void main(String[] args) throws IOException {
+        Migrations.run();
         int port = Integer.parseInt(System.getenv().getOrDefault("PORT", "8082"));
 
         LINE_ITEMS.put("order-1001", new ArrayList<>(List.of("line-1001", "line-1002")));

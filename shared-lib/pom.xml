@@ -9,4 +9,12 @@
         <version>1.0.0</version>
     </parent>
     <artifactId>shared-lib</artifactId>
+    <dependencies>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+            <version>10.20.1</version>
+            <optional>true</optional>
+        </dependency>
+    </dependencies>
 </project>
