@@ -7,6 +7,6 @@ Three runnable microservices + a shared library, in one Maven multi-module repo 
     api-gateway     :8080  /users, /orders (proxies), /health
 
 Build:  mvn package     (fat jars in each module's target/)
-Run:    java -jar user-service/target/user-service.jar   (repeat for the other two)
+Run:    sh run.sh       (builds, then starts all three services from the repo root)
 Docker: mvn package && docker compose up --build
-Expected for Octiq: THREE runnable modules, no single mainClass at the root. Ambiguous run target.
+The root run target is `sh run.sh`; the gateway is available on :8080.
